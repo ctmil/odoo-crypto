@@ -97,8 +97,12 @@ class pairkey(osv.osv):
         """
         r = {}
         for pairkey in self.browse(cr, uid, ids):
-            if pairkey.key and pairkey.pub:
-                r[pairkey.id] = pairkey.key.encode('ascii') + '\n' + pairkey.pub.encode('ascii')
+            if pairkey.key: 
+                r[pairkey.id] = pairkey.key.encode('ascii')
+            else:
+                r[pairkey.id] = ''
+            if pairkey.pub:
+                r[pairkey.id] += pairkey.pub.encode('ascii')
         return r
 
     def as_rsa(self, cr, uid, ids):

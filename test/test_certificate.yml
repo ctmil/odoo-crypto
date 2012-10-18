@@ -1,12 +1,8 @@
 -
  Pair key test created a certificate request. Now I test it.
 -
-  !python {model: crypto.certificate }: |
-        cer_id = self.search(cr, uid, [('name','=','C=AR, O=Moldeo Interactive, CN=Testing')])
-        assert(len(cer_id) > 0)
-        cer = self.browse(cr, uid, cer_id).pop()
-        assert(len(cer.csr) > 0)
-        assert(cer.status == 'Valid Request')
+  !assert {model: crypto.certificate, search: "[('name','=','C=AR, O=Moldeo Interactive, CN=Testing')]" }:
+        - status == 'valid_request'
 
 -
  I will create an empty certificate.
@@ -17,18 +13,21 @@
 -
  I will check the empty certificate.
 -
-  !python {model: crypto.certificate }: |
-        cer = self.browse(cr, uid, ref('cert_0'))
-        assert(cer.status == 'Empty')
+  !assert {model: crypto.certificate, id: cert_0, string: The new certificate must be empty }:
+       - status == 'empty'
+
+-
+ Create a certificate from the certification request.
+-
+  !assert {model: crypto.certificate, search: "[('name','=','C=AR, O=Moldeo Interactive, CN=Testing')]", string: Check if the Moldeo certificate is a valid request }:
+       - status == 'valid_request'
 
 -
  Create a certificate from the certification request.
 -
   !python {model: crypto.certificate }: |
         cer_id = self.search(cr, uid, [('name','=','C=AR, O=Moldeo Interactive, CN=Testing')])
-        assert(len(cer_id) > 0)
         cer = self.browse(cr, uid, cer_id).pop()
-        assert(cer.status == 'Valid Request')
 
         from M2Crypto import X509
         issuer = X509.X509_Name()
@@ -39,18 +38,14 @@
 -
  The certificate now is valid.
 -
-  !python {model: crypto.certificate }: |
-        cer_id = self.search(cr, uid, [('name','=','C=AR, O=Moldeo Interactive, CN=Testing')])
-        assert(len(cer_id) > 0)
-        cer = self.browse(cr, uid, cer_id).pop()
-        assert(cer.status == 'Valid')
+  !assert {model: crypto.certificate, search: "[('name','=','C=AR, O=Moldeo Interactive, CN=Testing')]", string: Check if the Moldeo certificate is a valid request }:
+       - status == 'valid'
 
 -
  Create a Signed MIME message from a raw message.
 -
   !python {model: crypto.certificate }: |
         cer_id = self.search(cr, uid, [('name','=','C=AR, O=Moldeo Interactive, CN=Testing')])
-        assert(len(cer_id) > 0)
         cer = self.browse(cr, uid, cer_id).pop()
 
         smime = cer.smime("Hola mundo")
@@ -111,6 +106,15 @@
         - name_serialnumber == False
 
 -
+ Check if request is in draft.
+-
+  !assert {model: crypto.certificate, search: "[('name','=','C=AR, ST=Capital Federal, L=Chacarita, O=Coop. Trab. Moldeo Interactive Ltda., OU=Business Lab., CN=moldeo.coop/serialNumber=CUIT 30712007288')]", string: Check if the Moldeo certificate is a valid request }:
+       - len(csr) > 0
+       - crt == False
+       - state == 'draft'
+       - status == 'valid_request'
+
+-
  Create a certificate from the certification request.
 -
   !python {model: crypto.generate_certificate }: |
@@ -125,7 +129,5 @@
         else:
                 self.on_generate(cr, uid, [ref('pk_wizard_3')],
                         context={'active_ids': ids})
-
-
-
+        pass
 

@@ -15,7 +15,7 @@
  Check as_pem()
 -
   !assert {model: crypto.pairkey, id: pairkey_0, string: Check as_pem() }:
-     - as_pem()[ref('pairkey_0')] == key.encode('ascii')+'\n'+pub.encode('ascii')
+     - as_pem()[ref('pairkey_0')] == key.encode('ascii')+pub.encode('ascii')
 
 -
  Check as_rsa()
@@ -151,7 +151,7 @@
                 context={'active_ids': [ref('pairkey_2')]})
 
 -
- Check if certificate is created
+ Check if certificate was created
 -
   !python {model: crypto.certificate}: |
         x509_name = u'C=AR, ST=Capital Federal, L=Chacarita, O=Coop. Trab. Moldeo Interactive Ltda., OU=Business Lab., CN=moldeo.coop/serialNumber=CUIT 30712007288'
@@ -161,6 +161,15 @@
                 print "Only exists:"
                 ids = self.search(cr, uid, [])
                 for cert in self.browse(cr, uid, ids): print "  %s" % cert.name
+
+-
+ Check if certificate was created in correct state.
+-
+  !assert {model: crypto.certificate, search: "[('name','=','C=AR, ST=Capital Federal, L=Chacarita, O=Coop. Trab. Moldeo Interactive Ltda., OU=Business Lab., CN=moldeo.coop/serialNumber=CUIT 30712007288')]", string: Check if certificate was created in correct state}:
+        - len(csr) > 0
+        - crt == False
+        - status == 'valid_request'
+        - state == 'draft'
 
 -
   Invoque generate certificate wizard with default values

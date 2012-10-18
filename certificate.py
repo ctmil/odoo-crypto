@@ -28,25 +28,33 @@ class certificate(osv.osv):
         r = {}
         for cer in self.browse(cr, uid, ids):
             if not cer.csr and not cer.crt:
-                r[cer.id] = 'Empty'
+                r[cer.id] = 'empty'
             elif cer.csr and not cer.crt:
                 try:
                     req = cer.get_request()[cer.id]
                     pkey = req.get_pubkey()
                     if req.verify(pkey):
-                        r[cer.id] = 'Valid Request'
+                        r[cer.id] = 'valid_request'
                     else:
-                        r[cer.id] = 'Invalid Request'
+                        r[cer.id] = 'invalid_request'
                 except:
-                    r[cer.id] = 'Invalid Request'
+                    r[cer.id] = 'invalid_request'
             elif cer.csr and cer.crt:
                 req = cer.get_request()[cer.id]
                 pkey = req.get_pubkey()
                 try:
                     crt = cer.get_certificate()[cer.id]
-                    r[cer.id] = 'Valid' if crt.verify() and crt.verify(pkey) else 'Invalid'
+                    r[cer.id] = 'valid' if crt.verify() and crt.verify(pkey) else 'invalid'
                 except:
-                    r[cer.id] = 'Invalid'
+                    r[cer.id] = 'invalid'
+            elif not cer.csr and cer.pairkey_id and cer.crt:
+                pkey = cer.pairkey_id.as_pkey()[cer.pairkey_id.id]
+                try:
+                    crt = cer.get_certificate()[cer.id]
+                    r[cer.id] = 'valid' if crt.verify() and crt.verify(pkey) else 'invalid'
+                except:
+                    r[cer.id] = 'invalid'
+
             else:
                 r[cer.id] = 'Invalid'
         return r
@@ -81,19 +89,19 @@ class certificate(osv.osv):
     def action_validate(self, cr, uid, ids, context=None):
         if context is None:
             context = {}
-        certs = self.read(cr, uid, ids, ['status', 'state'], context=context)
+        certs = self.read(cr, uid, ids, ['name', 'status', 'state'], context=context)
         confirm_ids = []
         waiting_ids = []
         for cert in certs:
             status = cert['status']
             state = cert['state']
-            if status == 'Valid Request' and state == 'draft':
+            if status in 'valid_request' and state == 'draft':
                 waiting_ids.append(cert['id'])
-            elif status == 'Valid' and state == 'waiting':
+            elif status == 'valid' and state in [ 'draft', 'waiting' ]:
                 confirm_ids.append(cert['id'])
             else:
                 raise osv.except_osv(_('Invalid action !'),
-                                     _('Perhaps you want to insert an invalid request or certificate, or you want approve an invalid certificate with an valid request.'))
+                                     _('Perhaps you want to insert an invalid request or certificate, or you want approve an invalid certificate with an valid request. Status: %s, State: %s'))
         self.write(cr, uid, confirm_ids, {'state': 'confirmed'}, context=context)
         self.write(cr, uid, waiting_ids, {'state': 'waiting'}, context=context)
         return True
@@ -120,7 +128,7 @@ class certificate(osv.osv):
         """
         r = {}
         for cert in self.browse(cr, uid, ids):
-            if cert.csr:
+            if cert.crt:
                 r[cert.id] = X509.load_cert_string(cert.crt.encode('ascii'))
         return r
 
@@ -134,7 +142,7 @@ class certificate(osv.osv):
         Generate certificate
         """
         for item in self.browse(cr, uid, ids):
-            if item.status == 'Valid Request':
+            if item.status == 'valid_request':
                 # Get request data
                 pk = item.pairkey_id.as_pkey()[item.pairkey_id.id]
                 req = item.get_request()[item.id]
@@ -170,13 +178,15 @@ class certificate(osv.osv):
                 w = { 'crt': cert.as_pem() }
                 self.write(cr, uid, item.id, w)
 
+
     def smime(self, cr, uid, ids, message, context=None):
         """
         Sign message in SMIME format.
         """
         r = {}
         for cert in self.browse(cr, uid, ids):
-            if cert.status == 'Valid':
+            #if cert.status == 'valid': # EXTRANGE: Invalid certificates can be used for sign!
+            if True:
                 smime = SMIME.SMIME()
                 ks = BIO.MemoryBuffer(cert.pairkey_id.key.encode('ascii'))
                 cs = BIO.MemoryBuffer(cert.crt.encode('ascii'))
