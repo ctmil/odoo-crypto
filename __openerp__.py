@@ -38,5 +38,5 @@
                       'wizard/generate_certificate_request.xml',
                       'pairkey_view.xml',
                       'certificate_view.xml'],
-    'version': '0.2',
+    'version': '0.3',
     'website': 'http://business.moldeo.coop'}
