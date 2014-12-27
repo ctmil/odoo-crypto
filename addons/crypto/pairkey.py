@@ -20,8 +20,8 @@
 ##############################################################################
 import os
 from M2Crypto import BIO, Rand, SMIME, EVP, RSA, X509
-from osv import fields, osv, orm
-from tools.translate import _
+from openerp.osv import fields, osv, orm
+from openerp.tools.translate import _
 
 class pairkey(osv.osv):
     _name = "crypto.pairkey"
@@ -33,9 +33,8 @@ class pairkey(osv.osv):
                                   ),
         'group_id': fields.many2one('res.groups', 'User group',
                                     select=True,
-                                    help='Users who use the pairkey.'),
-        'pub': fields.text('Public key', 
-                           readonly=True, states={'draft': [('readonly',False)]}, 
+                                    help='Users who can use the pairkey.'),
+        'pub': fields.text('Public key', readonly=True, states={'draft': [('readonly',False)]}, 
                            help='Public key in PEM format.'),
         'key': fields.text('Private key', readonly=True, states={'draft': [('readonly',False)]},
                           help='Private key in PEM format.'),
@@ -49,6 +48,7 @@ class pairkey(osv.osv):
             \n* The \'Canceled\' state is used when the key is not more used. You cant use this key again.'),
     }
     _defaults = {
+        'user_id': lambda self, cr, uid, context: uid,
         'state': 'draft',
     }
 

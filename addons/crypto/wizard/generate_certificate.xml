@@ -8,15 +8,18 @@
 	    <field name="type">form</field>
 	    <field name="arch" type="xml">
 		<form string="Generate Certificate">
-		    <field name="company_id" on_change="onchange_company_id(company_id)"/>
-				<newline/>
-		    <field name="date_begin"/>
-		    <field name="date_end"/>
-		    <field name="version"/>
-		    <field name="serial_number"/>
-				<newline/>
+		<group>
+		    <field name="partner_id" on_change="onchange_partner_id(partner_id)"/>
+		</group>
+		<group>
+		    <separator string="Settings"/>
+			    <field name="date_begin"/>
+			    <field name="date_end"/>
+			    <field name="version"/>
+			    <field name="serial_number"/>
+		</group>
 		    <group col="4" colspan="4" string='Issuer X509 Fields Name'>
-			    <label string='Update values when you change the Company' colspan="4"/>
+			    <label string='Update values when you change the Partner' colspan="4"/>
 			    <field name="name_c"/>
 			    <field name="name_sp"/>
 			    <field name="name_l"/>

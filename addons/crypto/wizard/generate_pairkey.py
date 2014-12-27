@@ -19,8 +19,8 @@
 #
 ##############################################################################
 
-from osv import fields,osv
-from tools.translate import _
+from openerp.osv import fields,osv
+from openerp.tools.translate import _
 
 class generate_pairkey(osv.osv_memory):
         _name = 'crypto.generate_pairkey'

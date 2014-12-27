@@ -8,7 +8,7 @@
 	    <field name="type">form</field>
 	    <field name="arch" type="xml">
 	      <form string="Generate Certificate Request">
-		    <field name="company_id" on_change="onchange_company_id(company_id)"/>
+		    <field name="partner_id" on_change="onchange_partner_id(partner_id)"/>
 				<newline/>
 		    <group col="4" colspan="4" string='Owner X509 Fields Name'>
 			    <label string='Update values when you change the Company' colspan="4"/>

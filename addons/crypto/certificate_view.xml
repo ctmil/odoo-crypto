@@ -17,22 +17,24 @@
 		<field name="model">crypto.certificate</field>
 		<field name="type">form</field>
 		<field name="arch" type="xml">
-			<form string="Pair key">
-				<field name="name"/>
-				<field name="status"/>
-				<field name="pairkey_id"/>
-				<field name="state"/>
-				<newline/>
-				<field name="csr"/>
-				<field name="crt"/>
-				<group col="3" colspan="4">
-					<button name="%(action_generate_certificate_wizard)s" type="action" states="draft"
-						string="Generate certifate" icon="terp-camera_test"/>
-					<button name="action_validate" type="object" states="draft,waiting"
-						string="Approve" icon="terp-camera_test"/>
-					<button name="action_cancel"   type="object" states="draft,waiting,confirmed"
-						string="Cancel" icon="gtk-cancel"/>
+			<form string="Certificate">
+			<header>
+				<button name="%(action_generate_certificate_wizard)s" type="action" states="draft" string="Generate certifate"/>
+				<button name="action_validate" type="object" states="draft,waiting" string="Approve"/>
+				<button name="action_cancel"   type="object" states="draft,waiting,confirmed" string="Cancel"/>
+				<field name="state" widget="statusbar" statusbar_colors='{}'/>
+			</header>
+			<sheet string="Pairkeys">
+				<h1><field name="name"/></h1>
+				<group>
+					<field name="pairkey_id"/>
+					<field name="status"/>
 				</group>
+				<separator string="Certificate Request"/>
+				<field name="csr"/>
+				<separator string="Certificate"/>
+				<field name="crt"/>
+			</sheet>
 			</form>
 		</field>
 	</record>

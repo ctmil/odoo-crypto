@@ -20,8 +20,8 @@
 ##############################################################################
 import os, time
 from M2Crypto import BIO, Rand, SMIME, EVP, RSA, X509, ASN1
-from osv import fields, osv, orm
-from tools.translate import _
+from openerp.osv import fields, osv, orm
+from openerp.tools.translate import _
 
 class certificate(osv.osv):
     def _get_status(self, cr, uid, ids, field_name, arg, context=None):

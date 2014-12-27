@@ -19,22 +19,22 @@
 #
 ##############################################################################
 
-from osv import fields,osv
-from tools.translate import _
+from openerp.osv import fields,osv
+from openerp.tools.translate import _
 from M2Crypto import X509
 from datetime import datetime, timedelta
 
 class generate_certificate(osv.osv_memory):
-    def _get_company_id(self, cr, uid, context={}):
-        res = self.pool.get('res.users').read(cr, uid, [uid], ['company_id'], context=context)
-        if res and res[0]['company_id']:
-            return res[0]['company_id'][0]
-        return False
-
     _name = 'crypto.generate_certificate'
 
+    def _get_partner_id(self, cr, uid, context={}):
+        res = self.pool.get('res.users').read(cr, uid, [uid], ['partner_id'], context=context)
+        if res and res[0]['partner_id']:
+            return res[0]['partner_id'][0]
+        return False
+
     _columns = {
-        'company_id': fields.many2one('res.company', 'Company'),
+        'partner_id': fields.many2one('res.partner', 'Partner'),
         'serial_number': fields.integer('Serial number'),
         'version': fields.integer('Version'),
         'date_begin': fields.date('Begin date'),
@@ -52,28 +52,28 @@ class generate_certificate(osv.osv_memory):
     }
 
     _defaults = {
-        'company_id': _get_company_id,
+        'partner_id': _get_partner_id,
         'serial_number': 1,
         'version': 2,
         'date_begin': (datetime.today() + timedelta(days=(0))).strftime('%Y-%m-%d'),
         'date_end': (datetime.today() + timedelta(days=(365))).strftime('%Y-%m-%d'),
     }
 
-    def onchange_company_id(self, cr, uid, ids, company_id, context=None):
+    def onchange_partner_id(self, cr, uid, ids, partner_id, context=None):
         v={}
-        if company_id:
-            company=self.pool.get('res.company').browse(cr,uid,company_id)
+        if partner_id:
+            partner=self.pool.get('res.partner').browse(cr,uid,partner_id)
             try:
-                address=company.partner_id.address.pop()
-                v['name_c'] = address.country_id.code
-                v['name_sp'] = address.state_id.name
-                v['name_l'] = address.city
-                v['name_o'] = company.name
+                v['name_c'] = partner.country_id.code
+                v['name_sp'] = partner.state_id.name
+                v['name_l'] = partner.city
+                v['name_o'] = partner.name
+                v['name_cn'] = partner.name
+                v['name_email'] = partner.email
+                # The following attributes are not set
                 #v['name_ou'] = ''
-                v['name_cn'] = address.name
                 #v['name_gn'] = ''
                 #v['name_sn'] = ''
-                v['name_email'] = address.email
                 #v['name_serialnumber'] = ''
             except:
                 pass
@@ -85,6 +85,7 @@ class generate_certificate(osv.osv_memory):
             context = {}
         active_ids = context['active_ids']
         certificate_obj = self.pool.get('crypto.certificate')
+        r_ids = []
         for wizard in self.browse(cr, uid, ids):
             name = X509.X509_Name()
             if wizard.name_c:  name.C  = wizard.name_c
@@ -97,14 +98,24 @@ class generate_certificate(osv.osv_memory):
             if wizard.name_sn: name.SN = wizard.name_sn
             if wizard.name_email: name.EMail = wizard.name_email
             if wizard.name_serialnumber: name.serialNumber = wizard.name_serialnumber
-            certificate_obj.generate_certificate(cr, uid, active_ids,
+            r = certificate_obj.generate_certificate(cr, uid, active_ids,
                                                 name, ext=None,
                                                 serial_number=wizard.serial_number,
                                                 version=wizard.version,
                                                 date_begin=datetime.strptime(wizard.date_begin, '%Y-%m-%d'),
                                                 date_end=datetime.strptime(wizard.date_end, '%Y-%m-%d'))
+            r_ids.extend([ r[_id] for _id in active_ids ])
             certificate_obj.action_validate(cr, uid, active_ids)
-        return {'type': 'ir.actions.act_window_close'}
+        res_id = r_ids[0]
+        return {
+            'name': _('Request Certificate'),
+            'res_model': 'crypto.certificate',
+            'res_id': res_id,
+            'type': 'ir.actions.act_window',
+            'view_id': False,
+            'view_mode': 'form',
+            'limit': 80,
+        }
 
     def on_cancel(self, cr, uid, ids, context):
         return {}

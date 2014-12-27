@@ -20,22 +20,23 @@
 		<field name="type">form</field>
 		<field name="arch" type="xml">
 			<form string="Pair key">
-				<field name="name"/>
-				<field name="state"/>
-				<newline/>
-				<field name="user_id"/>
-				<field name="group_id"/>
-				<newline/>
-				<field name="pub" domain="[('user_id','=',user_id)]"/>
-				<field name="key"/>
-				<group col="3" colspan="4">
-					<button name="%(action_generate_pairkey_wizard)s" type="action" states="draft"
-						string="Generate keys" icon="terp-camera_test"/>
-					<button name="action_validate" type="object" states="draft"
-						string="Approve" icon="terp-camera_test"/>
-					<button name="action_cancel"   type="object" states="draft,confirmed"
-						string="Cancel" icon="gtk-cancel"/>
+			<header>
+				<button name="308" type="action" states="draft" string="Generate keys"/>
+				<button name="action_validate" type="object" states="draft" string="Approve"/>
+				<button name="action_cancel" type="object" states="draft,confirmed" string="Cancel"/>
+				<field name="state" widget="statusbar" statusbar_colors='{}'/>
+			</header>
+			<sheet string="Pairkeys">
+				<h1><field name="name"/></h1>
+				<group>
+					<field name="user_id"/>
+					<field name="group_id"/>
 				</group>
+				<separator string="Public key"/>
+				<field name="pub" domain="[('user_id','=',user_id)]"/>
+				<separator string="Private key"/>
+				<field name="key"/>
+			</sheet>
 			</form>
 		</field>
 	</record>

@@ -19,21 +19,21 @@
 #
 ##############################################################################
 
-from osv import fields,osv
-from tools.translate import _
+from openerp.osv import fields,osv
+from openerp.tools.translate import _
 from M2Crypto import X509
 
 class generate_certificate_request(osv.osv_memory):
-    def _get_company_id(self, cr, uid, context={}):
-        res = self.pool.get('res.users').read(cr, uid, [uid], ['company_id'], context=context)
-        if res and res[0]['company_id']:
-            return res[0]['company_id'][0]
+    def _get_partner_id(self, cr, uid, context={}):
+        res = self.pool.get('res.users').read(cr, uid, [uid], ['partner_id'], context=context)
+        if res and res[0]['partner_id']:
+            return res[0]['partner_id'][0]
         return False
 
     _name = 'crypto.generate_certificate_request'
 
     _columns = {
-        'company_id': fields.many2one('res.company', 'Company'),
+        'partner_id': fields.many2one('res.partner', 'Company'),
         'name_c':  fields.char('Country (C)', size=2),
         'name_sp': fields.char('State or Province Name (ST/SP)', size=64),
         'name_l':  fields.char('Locality Name (L)', size=64),
@@ -47,21 +47,20 @@ class generate_certificate_request(osv.osv_memory):
     }
 
     _defaults = {
-        'company_id': _get_company_id,
+        'partner_id': _get_partner_id,
     }
 
-    def onchange_company_id(self, cr, uid, ids, company_id, context=None):
+    def onchange_partner_id(self, cr, uid, ids, partner_id, context=None):
         v={}
-        if company_id:
-            company=self.pool.get('res.company').browse(cr,uid,company_id)
+        if partner_id:
+            partner=self.pool.get('res.partner').browse(cr,uid,partner_id)
             try:
-                address=company.partner_id.address.pop()
-                v['name_c'] = address.country_id.code
-                v['name_sp'] = address.state_id.name
-                v['name_l'] = address.city
-                v['name_o'] = company.name
-                v['name_cn'] = address.name
-                v['name_email'] = address.email
+                v['name_c'] = partner.country_id.code
+                v['name_sp'] = partner.state_id.name
+                v['name_l'] = partner.city
+                v['name_o'] = partner.name
+                v['name_cn'] = partner.name
+                v['name_email'] = partner.email
                 # The following attributes are not set
                 #v['name_ou'] = ''
                 #v['name_gn'] = ''
@@ -76,21 +75,34 @@ class generate_certificate_request(osv.osv_memory):
             context = {}
         active_ids = context['active_ids']
         pairkey_obj = self.pool.get('crypto.pairkey')
+        r_ids = []
         for wizard in self.browse(cr, uid, ids):
-            name = X509.X509_Name()
-            if wizard.name_c:  name.C  = wizard.name_c
-            if wizard.name_sp: name.SP = wizard.name_sp
-            if wizard.name_l:  name.L  = wizard.name_l
-            if wizard.name_o:  name.O  = wizard.name_o
-            if wizard.name_ou: name.OU = wizard.name_ou
-            if wizard.name_cn: name.CN = wizard.name_cn
-            if wizard.name_gn: name.GN = wizard.name_gn
-            if wizard.name_sn: name.SN = wizard.name_sn
-            if wizard.name_email: name.EMail = wizard.name_email
-            if wizard.name_serialnumber: name.serialNumber = wizard.name_serialnumber
-            pairkey_obj.generate_certificate_request(cr, uid, active_ids, name)
-        return {'type': 'ir.actions.act_window_close'}
-
+            try:
+                name = X509.X509_Name()
+                if wizard.name_c:  name.C  = wizard.name_c
+                if wizard.name_sp: name.SP = wizard.name_sp
+                if wizard.name_l:  name.L  = wizard.name_l
+                if wizard.name_o:  name.O  = wizard.name_o
+                if wizard.name_ou: name.OU = wizard.name_ou
+                if wizard.name_cn: name.CN = wizard.name_cn
+                if wizard.name_gn: name.GN = wizard.name_gn
+                if wizard.name_sn: name.SN = wizard.name_sn
+                if wizard.name_email: name.EMail = wizard.name_email
+                if wizard.name_serialnumber: name.serialNumber = wizard.name_serialnumber
+                r = pairkey_obj.generate_certificate_request(cr, uid, active_ids, name)
+                r_ids.extend([ r[_id] for _id in active_ids ])
+            except Exception, m:
+                raise osv.except_osv(_('Error'), m)
+        res_id = r_ids[0]
+        return {
+            'name': _('Request Certificate'),
+            'res_model': 'crypto.certificate',
+            'res_id': res_id,
+            'type': 'ir.actions.act_window',
+            'view_id': False,
+            'view_mode': 'form',
+            'limit': 80,
+        }
 
     def on_cancel(self, cr, uid, ids, context):
         return {}
