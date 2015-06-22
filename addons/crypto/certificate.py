@@ -1,27 +1,10 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-# Copyright (C) 2012 Coop. Trab. Moldeo Interactive Ltda.
-# http://business.moldeo.coop
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
-import os, time
-from M2Crypto import BIO, Rand, SMIME, EVP, RSA, X509, ASN1
-from openerp.osv import fields, osv, orm
+
+import time
+from M2Crypto import BIO, SMIME, EVP, X509, ASN1
+from openerp.osv import fields, osv
 from openerp.tools.translate import _
+
 
 class certificate(osv.osv):
     def _get_status(self, cr, uid, ids, field_name, arg, context=None):
@@ -44,14 +27,18 @@ class certificate(osv.osv):
                 pkey = req.get_pubkey()
                 try:
                     crt = cer.get_certificate()[cer.id]
-                    r[cer.id] = 'valid' if crt.verify() and crt.verify(pkey) else 'invalid'
+                    r[cer.id] = 'valid' \
+                        if crt.verify() and crt.verify(pkey) \
+                        else 'invalid'
                 except:
                     r[cer.id] = 'invalid'
             elif not cer.csr and cer.pairkey_id and cer.crt:
                 pkey = cer.pairkey_id.as_pkey()[cer.pairkey_id.id]
                 try:
                     crt = cer.get_certificate()[cer.id]
-                    r[cer.id] = 'valid' if crt.verify() and crt.verify(pkey) else 'invalid'
+                    r[cer.id] = 'valid' \
+                        if crt.verify() and crt.verify(pkey) \
+                        else 'invalid'
                 except:
                     r[cer.id] = 'invalid'
 
@@ -63,24 +50,33 @@ class certificate(osv.osv):
     _columns = {
         'name': fields.char('Name', size=256),
         'csr': fields.text('Request Certificate',
-                           readonly=True, states={'draft': [('readonly',False)]}, 
+                           readonly=True,
+                           states={'draft': [('readonly', False)]},
                            help='Certificate Request in PEM format.'),
         'crt': fields.text('Certificate',
-                           readonly=True, states={'draft': [('readonly',False)], 'waiting':[('readonly',False)]}, 
+                           readonly=True,
+                           states={'draft': [('readonly', False)],
+                                   'waiting': [('readonly', False)]},
                            help='Certificate in PEM format.'),
         'pairkey_id': fields.many2one('crypto.pairkey', 'Key pair'),
-        'status': fields.function(_get_status, method=True, string='Status', type='char',
-                                 help='Certificate Status'),
+        'status': fields.function(_get_status, method=True, string='Status',
+                                  type='char',
+                                  help='Certificate Status'),
         'state': fields.selection([
-                ('draft', 'Draft'),
-                ('waiting', 'Waiting'),
-                ('confirmed', 'Confirmed'),
-                ('cancel', 'Cancelled'),
-            ], 'State', select=True, readonly=True,
-            help='* The \'Draft\' state is used when a user is creating a new pair key. Warning: everybody can see the key.\
-            \n* The \'Waiting\' state is used when a request has send to Certificate Authority and is waiting for response.\
-            \n* The \'Confirmed\' state is used when a certificate is valid.\
-            \n* The \'Canceled\' state is used when the key is not more used. You cant use this key again.'),
+            ('draft', 'Draft'),
+            ('waiting', 'Waiting'),
+            ('confirmed', 'Confirmed'),
+            ('cancel', 'Cancelled')
+        ], 'State', select=True, readonly=True,
+            help="""
+* The 'Draft' state is used when a user is creating a new pair key.
+            Warning: everybody can see the key.
+* The 'Waiting' state is used when a request has send to Certificate Authority
+            and is waiting for response.
+* The 'Confirmed' state is used when a certificate is valid.
+* The 'Canceled' state is used when the key is not more used. You cant use this
+            key again.
+            """),
     }
     _defaults = {
         'state': 'draft',
@@ -89,7 +85,8 @@ class certificate(osv.osv):
     def action_validate(self, cr, uid, ids, context=None):
         if context is None:
             context = {}
-        certs = self.read(cr, uid, ids, ['name', 'status', 'state'], context=context)
+        certs = self.read(cr, uid, ids, ['name', 'status', 'state'],
+                          context=context)
         confirm_ids = []
         waiting_ids = []
         for cert in certs:
@@ -97,13 +94,19 @@ class certificate(osv.osv):
             state = cert['state']
             if status in 'valid_request' and state == 'draft':
                 waiting_ids.append(cert['id'])
-            elif status == 'valid' and state in [ 'draft', 'waiting' ]:
+            elif status == 'valid' and state in ['draft', 'waiting']:
                 confirm_ids.append(cert['id'])
             else:
-                raise osv.except_osv(_('Invalid action !'),
-                                     _('Perhaps you want to insert an invalid request or certificate, or you want approve an invalid certificate with an valid request. Status: %s, State: %s'))
-        self.write(cr, uid, confirm_ids, {'state': 'confirmed'}, context=context)
-        self.write(cr, uid, waiting_ids, {'state': 'waiting'}, context=context)
+                raise osv.except_osv(
+                    _('Invalid action !'),
+                    _('Perhaps you want to insert an invalid request or'
+                      ' certificate, or you want approve an invalid'
+                      ' certificate with an valid request.'
+                      ' Status: %s, State: %s'))
+        self.write(cr, uid, confirm_ids, {'state': 'confirmed'},
+                   context=context)
+        self.write(cr, uid, waiting_ids, {'state': 'waiting'},
+                   context=context)
         return True
 
     def action_cancel(self, cr, uid, ids, context=None):
@@ -175,9 +178,8 @@ class certificate(osv.osv):
                 if ext:
                     cert.add_ext(ext)
                 cert.sign(pk, 'sha1')
-                w = { 'crt': cert.as_pem() }
+                w = {'crt': cert.as_pem()}
                 self.write(cr, uid, item.id, w)
-
 
     def smime(self, cr, uid, ids, message, context=None):
         """
@@ -185,7 +187,6 @@ class certificate(osv.osv):
         """
         r = {}
         for cert in self.browse(cr, uid, ids):
-            #if cert.status == 'valid': # EXTRANGE: Invalid certificates can be used for sign!
             if True:
                 smime = SMIME.SMIME()
                 ks = BIO.MemoryBuffer(cert.pairkey_id.key.encode('ascii'))
@@ -195,12 +196,20 @@ class certificate(osv.osv):
                 try:
                     smime.load_key_bio(ks, cs)
                 except EVP.EVPError:
-                    raise osv.except_osv(_('Error in Key and Certificate strings !'), _('Please check if private key and certificate are in ASCII PEM format.'))
+                    raise osv.except_osv(
+                        _('Error in Key and Certificate strings !'),
+                        _('Please check if private key and certificate'
+                          ' are in ASCII PEM format.'))
                 sbf = smime.sign(bf)
                 smime.write(out, sbf)
                 r[cert.id] = out.read()
             else:
-                raise osv.except_osv(_('This certificate is not ready to sign any message !'), _('Please set a certificate to continue. You must send your certification request to a authoritative certificator to get one, or execute a self sign certification'))
+                raise osv.except_osv(
+                    _('This certificate is not ready to sign any message !'),
+                    _('Please set a certificate to continue. You must send'
+                      ' your certification request to a authoritative'
+                      ' certificator to get one, or execute a self sign'
+                      ' certification'))
         return r
 
 certificate()

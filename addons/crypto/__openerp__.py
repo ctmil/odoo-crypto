@@ -24,6 +24,6 @@
  'external_dependencies': {
      'python': ['M2Crypto'],
  },
- 'version': '0.3',
- 'website': 'http://business.moldeo.coop'}
+ 'version': '8.0.1.1',
+ 'website': 'http://bizlab.moldeo.coop'}
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

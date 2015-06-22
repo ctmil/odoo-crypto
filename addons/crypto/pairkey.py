@@ -1,51 +1,38 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-# Copyright (C) 2012 Coop. Trab. Moldeo Interactive Ltda.
-# http://business.moldeo.coop
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
 import os
-from M2Crypto import BIO, Rand, SMIME, EVP, RSA, X509
-from openerp.osv import fields, osv, orm
+from M2Crypto import BIO, Rand, EVP, RSA, X509
+from openerp.osv import fields, osv
 from openerp.tools.translate import _
+
 
 class pairkey(osv.osv):
     _name = "crypto.pairkey"
     _columns = {
         'name': fields.char('Name', size=256, select=True),
         'user_id': fields.many2one('res.users', 'Owner',
-                                   select=True, 
-                                   help='Owner of the key. The only who can view, import and export the key.'
-                                  ),
+                                   select=True,
+                                   help='Owner of the key. The only who can'
+                                   ' view, import and export the key.'),
         'group_id': fields.many2one('res.groups', 'User group',
                                     select=True,
                                     help='Users who can use the pairkey.'),
-        'pub': fields.text('Public key', readonly=True, states={'draft': [('readonly',False)]}, 
+        'pub': fields.text('Public key', readonly=True,
+                           states={'draft': [('readonly', False)]},
                            help='Public key in PEM format.'),
-        'key': fields.text('Private key', readonly=True, states={'draft': [('readonly',False)]},
-                          help='Private key in PEM format.'),
+        'key': fields.text('Private key', readonly=True,
+                           states={'draft': [('readonly', False)]},
+                           help='Private key in PEM format.'),
         'state': fields.selection([
-                ('draft', 'Draft'),
-                ('confirmed', 'Confirmed'),
-                ('cancel', 'Cancelled'),
-            ], 'State', select=True, readonly=True,
-            help='* The \'Draft\' state is used when a user is creating a new pair key. Warning: everybody can see the key.\
-            \n* The \'Confirmed\' state is used when the key is completed with public or private key.\
-            \n* The \'Canceled\' state is used when the key is not more used. You cant use this key again.'),
+            ('draft', 'Draft'),
+            ('confirmed', 'Confirmed'),
+            ('cancel', 'Cancelled'),
+        ], 'State', select=True, readonly=True,
+            help='* The \'Draft\' state is used when a user is creating a'
+            ' new pair key. Warning: everybody can see the key.'
+            '\n* The \'Confirmed\' state is used when the key is'
+            ' completed with public or private key.'
+            '\n* The \'Canceled\' state is used when the key is'
+            ' not more used. You cant use this key again.'),
     }
     _defaults = {
         'user_id': lambda self, cr, uid, context: uid,
@@ -74,9 +61,13 @@ class pairkey(osv.osv):
             if key or pub:
                 confirm_ids.append(pk['id'])
             else:
-                raise osv.except_osv(_('Invalid action !'),
-                                     _('Cannot confirm invalid pairkeys. You need provide private and public keys in PEM format.'))
-        self.write(cr, uid, confirm_ids, {'state': 'confirmed'}, context=context)
+                raise osv.except_osv(
+                    _('Invalid action !'),
+                    _('Cannot confirm invalid pairkeys.'
+                      ' You need provide private and public keys'
+                      ' in PEM format.'))
+        self.write(cr, uid, confirm_ids, {'state': 'confirmed'},
+                   context=context)
         return True
 
     def action_cancel(self, cr, uid, ids, context=None):
@@ -93,11 +84,11 @@ class pairkey(osv.osv):
 
     def as_pem(self, cr, uid, ids):
         """
-        Return pairkey in pem format. 
+        Return pairkey in pem format.
         """
         r = {}
         for pairkey in self.browse(cr, uid, ids):
-            if pairkey.key: 
+            if pairkey.key:
                 r[pairkey.id] = pairkey.key.encode('ascii')
             else:
                 r[pairkey.id] = ''
@@ -107,9 +98,10 @@ class pairkey(osv.osv):
 
     def as_rsa(self, cr, uid, ids):
         """
-        Return RSA object. 
+        Return RSA object.
         """
-        return dict((k,RSA.load_key_string(v)) for k,v in self.as_pem(cr, uid, ids).items())
+        return dict((k, RSA.load_key_string(v))
+                    for k, v in self.as_pem(cr, uid, ids).items())
 
     def as_pkey(self, cr, uid, ids):
         """
@@ -119,9 +111,11 @@ class pairkey(osv.osv):
             pk = EVP.PKey()
             pk.assign_rsa(rsa)
             return pk
-        return dict((k,set_key(v)) for k,v in self.as_rsa(cr, uid, ids).items())
+        return dict((k, set_key(v))
+                    for k, v in self.as_rsa(cr, uid, ids).items())
 
-    def generate_keys(self, cr, uid, ids, key_length=1024, key_gen_number=0x10001, context=None):
+    def generate_keys(self, cr, uid, ids, key_length=1024,
+                      key_gen_number=0x10001, context=None):
         """
         Generate key pairs: private and public.
         """
@@ -129,9 +123,9 @@ class pairkey(osv.osv):
             context = {}
         for signer in self.browse(cr, uid, ids):
             # Random seed
-            Rand.rand_seed (os.urandom(key_length))
+            Rand.rand_seed(os.urandom(key_length))
             # Generate key pair
-            key = RSA.gen_key (key_length, key_gen_number, lambda *x: None)
+            key = RSA.gen_key(key_length, key_gen_number, lambda *x: None)
             # Create memory buffers
             pri_mem = BIO.MemoryBuffer()
             pub_mem = BIO.MemoryBuffer()
@@ -159,7 +153,8 @@ class pairkey(osv.osv):
             # Create certificate structure
             pk = EVP.PKey()
             req = X509.Request()
-            pem_string = signer.key.encode('ascii') + '\n' + signer.pub.encode('ascii')
+            pem_string = (signer.key.encode('ascii') + '\n' +
+                          signer.pub.encode('ascii'))
             rsa = RSA.load_key_string(pem_string)
             pk.assign_rsa(rsa)
             req.set_pubkey(pk)
@@ -174,7 +169,7 @@ class pairkey(osv.osv):
             }
             r[signer.id] = certificate_obj.create(cr, uid, w)
         return r
-   
+
 pairkey()
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
