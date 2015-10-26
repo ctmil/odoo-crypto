@@ -159,6 +159,7 @@ class pairkey(osv.osv):
             pk.assign_rsa(rsa)
             req.set_pubkey(pk)
             req.set_subject(x509_name)
+            req.sign(pk, 'sha1')
 
             # Crete certificate object
             certificate_obj = self.pool.get('crypto.certificate')
