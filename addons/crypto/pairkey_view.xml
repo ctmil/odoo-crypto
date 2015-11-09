@@ -33,9 +33,9 @@
 					<field name="group_id"/>
 				</group>
 				<separator string="Public key"/>
-				<field name="pub" domain="[('user_id','=',user_id)]"/>
-				<separator string="Private key"/>
-				<field name="key"/>
+				<field name="pub"/>
+				<separator string="Private key" attr="{'invisible': [('user_id','!=',uid)]}"/>
+				<field name="key" attr="{'invisible': [('user_id','!=',uid)]}"/>
 			</sheet>
 			</form>
 		</field>
