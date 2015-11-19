@@ -10,18 +10,8 @@
         id = ref('pairkey_0')
         pk = self.browse(cr, uid, id)
         pk.generate_keys()
-
--
- Check as_pem()
--
-  !assert {model: crypto.pairkey, id: pairkey_0, string: Check as_pem() }:
-     - as_pem()[ref('pairkey_0')] == key.encode('ascii')+pub.encode('ascii')
-
--
- Check as_rsa()
--
-  !assert {model: crypto.pairkey, id: pairkey_0, string: Check as_rsa() }:
-     - as_rsa()[ref('pairkey_0')].as_pem(None) == key.encode('ascii')
+        assert pk.as_pem()[pk.id] == pk.key.encode('ascii')+pk.pub.encode('ascii'), 'Expecting pem format, got other'
+        assert pk.as_rsa()[pk.id].as_pem(None) == pk.key.encode('ascii'), 'Expecting rsa format, got other'
 
 -
  Check as_rsa() in public key
@@ -33,13 +23,8 @@
         from M2Crypto import BIO
         buf = BIO.MemoryBuffer()
         rsa.save_pub_key_bio(buf)
-        assert(pk.pub.encode('ascii') == buf.read())
-
--
- Check as_pkey()
--
-  !assert {model: crypto.pairkey, id: pairkey_0, string: Check as_pkey() }:
-     - ('BEGIN PRIVATE KEY' in as_pkey()[ref('pairkey_0')].as_pem(None))
+        assert pk.pub.encode('ascii') == buf.read(), 'Expected generated public key as BIO key'
+        assert 'BEGIN PRIVATE KEY' in pk.as_pkey()[pk.id].as_pem(None), 'Expected private key'
 
 -
  Generate Certificate Request
@@ -175,48 +160,17 @@
   Invoque generate certificate wizard with default values
 -
   !record {model: crypto.generate_certificate_request, id: pk_wizard_2}:
+        partner_id: base.main_partner
         name_c: 
-
--
- Assert default values.
--
-  !assert {model: crypto.generate_certificate_request, id: pk_wizard_2, string: Assert certificate request default values}:
-        - company_id.name == 'OpenERP S.A.'
-        - name_c == None
-        - name_sp == False
-        - name_l == False
-        - name_o == False
-        - name_ou == False
-        - name_cn == False
-        - name_gn == False
-        - name_sn == False
-        - name_email == False
-        - name_serialnumber == False
 
 -
  Change the company.
 -
   !python {model: crypto.generate_certificate_request}: |
         wizard = self.browse(cr, uid, ref('pk_wizard_2'))
-        value = wizard.onchange_company_id(wizard.company_id.id).get('value', {})
+        value = wizard.onchange_partner_id(wizard.partner_id.id).get('value', {})
         wizard.write(value)
         
--
- Check values after onchange_company_id
--
-  !assert {model: crypto.generate_certificate_request, id: pk_wizard_2, string: Assert certificate request values after onchange_company_id}:
-        - company_id.name == 'OpenERP S.A.'
-        - name_c == 'BE'
-        - name_sp == None
-        - name_l == 'Gerompont'
-        - name_o == 'OpenERP S.A.'
-        - name_ou == False
-        - name_cn == 'Fabien Pinckaers'
-        - name_gn == False
-        - name_sn == False
-        - name_email == False
-        - name_serialnumber == False
-
 -
  Test the generete key wizard
 -
@@ -230,5 +184,4 @@
   !python {model: crypto.generate_certificate_request}: |
         self.on_generate(cr, uid, [ref('pk_wizard_2')],
                 context={'active_ids': [ref('pairkey_2')]})
-
 

@@ -27,7 +27,7 @@
 -
   !python {model: crypto.certificate }: |
         cer_id = self.search(cr, uid, [('name','=','C=AR, O=Moldeo Interactive, CN=Testing')])
-        cer = self.browse(cr, uid, cer_id).pop()
+        cer = self.browse(cr, uid, cer_id)
 
         from M2Crypto import X509
         issuer = X509.X509_Name()
@@ -46,7 +46,7 @@
 -
   !python {model: crypto.certificate }: |
         cer_id = self.search(cr, uid, [('name','=','C=AR, O=Moldeo Interactive, CN=Testing')])
-        cer = self.browse(cr, uid, cer_id).pop()
+        cer = self.browse(cr, uid, cer_id)
 
         smime = cer.smime("Hola mundo")
         assert(len(smime)>0)
@@ -55,18 +55,19 @@
   Invoque generate certificate wizard with default values
 -
   !record {model: crypto.generate_certificate, id: pk_wizard_3}:
+        partner_id: base.main_partner
         name_c: 
 
 -
  Assert default values.
 -
   !assert {model: crypto.generate_certificate, id: pk_wizard_3, string: Assert certificate default values}:
-        - company_id.name == 'OpenERP S.A.'
+        - partner_id.name == 'YourCompany'
         - date_begin == (datetime.today() + timedelta(days=(0))).strftime('%Y-%m-%d')
         - date_end == (datetime.today() + timedelta(days=(365))).strftime('%Y-%m-%d')
         - serial_number == 1
         - version == 2
-        - name_c == None
+        - name_c == False
         - name_sp == False
         - name_l == False
         - name_o == False
@@ -82,27 +83,27 @@
 -
   !python {model: crypto.generate_certificate}: |
         wizard = self.browse(cr, uid, ref('pk_wizard_3'))
-        value = wizard.onchange_company_id(wizard.company_id.id).get('value', {})
+        value = wizard.onchange_partner_id(wizard.partner_id.company_id.partner_id.id).get('value', {})
         wizard.write(value)
         
 -
- Check values after onchange_company_id
+ Check values after onchange_partner_id
 -
-  !assert {model: crypto.generate_certificate, id: pk_wizard_3, string: Assert certificate request values after onchange_company_id}:
-        - company_id.name == 'OpenERP S.A.'
+  !assert {model: crypto.generate_certificate, id: pk_wizard_3, string: Assert certificate request values after onchange_partner_id}:
+        - partner_id.name == 'YourCompany'
         - date_begin == (datetime.today() + timedelta(days=(0))).strftime('%Y-%m-%d')
         - date_end == (datetime.today() + timedelta(days=(365))).strftime('%Y-%m-%d')
         - serial_number == 1
         - version == 2
-        - name_c == 'BE'
-        - name_sp == None
-        - name_l == 'Gerompont'
-        - name_o == 'OpenERP S.A.'
+        - name_c == False
+        - name_sp == False
+        - name_l == 'Scranton'
+        - name_o == 'YourCompany'
         - name_ou == False
-        - name_cn == 'Fabien Pinckaers'
+        - name_cn == 'YourCompany'
         - name_gn == False
         - name_sn == False
-        - name_email == False
+        - name_email == 'info@yourcompany.example.com'
         - name_serialnumber == False
 
 -

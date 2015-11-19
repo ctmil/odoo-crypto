@@ -144,6 +144,7 @@ class certificate(osv.osv):
         """
         Generate certificate
         """
+        r_ids = []
         for item in self.browse(cr, uid, ids):
             if item.status == 'valid_request':
                 # Get request data
@@ -180,6 +181,8 @@ class certificate(osv.osv):
                 cert.sign(pk, 'sha1')
                 w = {'crt': cert.as_pem()}
                 self.write(cr, uid, item.id, w)
+                r_ids.append(item.id)
+        return r_ids
 
     def smime(self, cr, uid, ids, message, context=None):
         """

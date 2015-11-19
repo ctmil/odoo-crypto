@@ -98,14 +98,15 @@ class generate_certificate(osv.osv_memory):
             if wizard.name_sn: name.SN = wizard.name_sn
             if wizard.name_email: name.EMail = wizard.name_email
             if wizard.name_serialnumber: name.serialNumber = wizard.name_serialnumber
-            r = certificate_obj.generate_certificate(cr, uid, active_ids,
-                                                name, ext=None,
-                                                serial_number=wizard.serial_number,
-                                                version=wizard.version,
-                                                date_begin=datetime.strptime(wizard.date_begin, '%Y-%m-%d'),
-                                                date_end=datetime.strptime(wizard.date_end, '%Y-%m-%d'))
-            r_ids.extend([ r[_id] for _id in active_ids ])
-            certificate_obj.action_validate(cr, uid, active_ids)
+            r = certificate_obj.generate_certificate(
+                cr, uid, active_ids,
+                name, ext=None,
+                serial_number=wizard.serial_number,
+                version=wizard.version,
+                date_begin=datetime.strptime(wizard.date_begin, '%Y-%m-%d'),
+                date_end=datetime.strptime(wizard.date_end, '%Y-%m-%d'))
+            certificate_obj.action_validate(cr, uid, r)
+            r_ids.extend(r)
         res_id = r_ids[0]
         return {
             'name': _('Request Certificate'),
