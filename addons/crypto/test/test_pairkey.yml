@@ -10,18 +10,9 @@
         id = ref('pairkey_0')
         pk = self.browse(cr, uid, id)
         pk.generate_keys()
+        assert pk.as_pem() == pk.key.encode('ascii')+pk.pub.encode('ascii'), 'Check as_pem()'
+        assert pk.as_rsa().as_pem() == pk.key.encode('ascii'), 'Check as_rsa()'
 
--
- Check as_pem()
--
-  !assert {model: crypto.pairkey, id: pairkey_0, string: Check as_pem() }:
-     - as_pem()[ref('pairkey_0')] == key.encode('ascii')+pub.encode('ascii')
-
--
- Check as_rsa()
--
-  !assert {model: crypto.pairkey, id: pairkey_0, string: Check as_rsa() }:
-     - as_rsa()[ref('pairkey_0')].as_pem(None) == key.encode('ascii')
 
 -
  Check as_rsa() in public key
@@ -33,13 +24,8 @@
         from M2Crypto import BIO
         buf = BIO.MemoryBuffer()
         rsa.save_pub_key_bio(buf)
-        assert(pk.pub.encode('ascii') == buf.read())
-
--
- Check as_pkey()
--
-  !assert {model: crypto.pairkey, id: pairkey_0, string: Check as_pkey() }:
-     - ('BEGIN PRIVATE KEY' in as_pkey()[ref('pairkey_0')].as_pem(None))
+        assert pk.pub.encode('ascii') == buf.read(), 'Read public key'
+        assert ('BEGIN PRIVATE KEY' in pk.as_pkey()[id].as_pem(None)), 'Check as_pkey()'
 
 -
  Generate Certificate Request
